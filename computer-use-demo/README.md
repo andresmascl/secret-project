@@ -20,7 +20,8 @@ You should see:
 
 Starting Claude computer use demo...
 
-⚠️ IMPORTANT FOR LINUX USERS
+## ⚠️ IMPORTANT FOR LINUX USERS
+
 pyautogui dependencies:
 sudo apt install scrot xclip xsel wmctrl
 
