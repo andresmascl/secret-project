@@ -1,0 +1,8 @@
+keyboard
+mouseinfo
+mouse
+pyautogui
+screeninfo
+Pillow
+openai
+tiktoken
