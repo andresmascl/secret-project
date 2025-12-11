@@ -22,3 +22,10 @@ or
 search for scrapbot.ai documentation
 or
 move the mouse to the center of the screen
+
+
+⚠️ IMPORTANT
+
+Your OpenAI key must be exported:
+
+export OPENAI_API_KEY="your-key"
