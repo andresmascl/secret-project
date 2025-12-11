@@ -8,3 +8,17 @@ sudo apt install scrot  # linux only
 
 cd scrapbot.ai/computer-use
 python3 run_computer_use.py
+
+
+You’ll see:
+
+🖥️ Computer Use agent initialized. Type a command.
+User command:
+
+
+Try:
+open a new browser tab
+or
+search for scrapbot.ai documentation
+or
+move the mouse to the center of the screen
