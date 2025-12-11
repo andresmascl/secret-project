@@ -64,7 +64,7 @@ Scrap AI Bot adds voice control to [Anthropic's Computer Use Demo](https://githu
 
 ```bash
 # Clone the repository
-git clone https://github.com/andresmascl/scrap-ai-bot.git
+git clone git@github.com:andresmascl/scrapbot.ai.git
 cd scrap-ai-bot
 
 # Run the installation script (handles everything)
@@ -316,7 +316,7 @@ Built on top of:
 
 ## Support
 
-- 📖 [Documentation](https://github.com/andresmascl/scrap-ai-bot/wiki)
+- 📖 [Documentation](git@github.com:andresmascl/scrapbot.ai.git)
 - 🐛 [Issue Tracker](https://github.com/andresmascl/scrap-ai-bot/issues)
 - 💬 [Discussions](https://github.com/andresmascl/scrap-ai-bot/discussions)
 - 📧 Email: support@scrap-ai-bot.dev
