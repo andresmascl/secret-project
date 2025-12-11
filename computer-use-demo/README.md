@@ -4,3 +4,17 @@ Open a terminal:
 
 cd scrapbot.ai/computer-use-demo
 pip install -r requirements.txt
+
+export ANTHROPIC_API_KEY="your-api-key-here"
+
+. Run the demo exactly like Anthropic intended
+python3 main.py
+
+You should see:
+
+Starting Claude computer use demo...
+
+⚠️ IMPORTANT FOR LINUX USERS
+pyautogui dependencies:
+sudo apt install scrot xclip xsel wmctrl
+
