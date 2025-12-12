@@ -13,7 +13,7 @@
 Works well on low-spec hardware (e.g., 8GB RAM + Pentium N3710).
 
 
-📦 Project Structure
+## 📦 Project Structure
 ```bash
 voicebot/
 │── main.py
@@ -34,7 +34,7 @@ voicebot/
     └── (compiled binaries)
 ```
 
-🚀 Setup Instructions
+## 🚀 Setup Instructions
 ✅ 1. Install system dependencies
 ```bash
 sudo apt update
@@ -121,7 +121,6 @@ You should hear:
 ```bash
 System ready. Say hey computer.
 ```
-You should hear:
 
 Say “hey computer”:
 
@@ -135,19 +134,17 @@ Whisper transcribes
 
 Piper speaks back the response
 
-🛠 Using the Makefile
+## 🛠 Using the Makefile
+
 ▶ Full installation
-You should hear:
 ```bash
 make setup
 ```
 ▶ Run the assistant
-You should hear:
 ```bash
 make run
 ```
 ▶ Build Whisper.cpp only
-You should hear:
 ```bash
 make whisper
 ```
@@ -160,12 +157,10 @@ make models/openwakeword.tflite
 make models/piper/en_US-amy-low.onnx
 ```
 ▶ Reset build artifacts
-You should hear:
 ```bash
 make clean
 ```
 ▶ Delete everything including venv + models
-You should hear:
 ```bash
 make distclean
 ```
@@ -174,7 +169,6 @@ make distclean
 
 Check microphone:
 
-You should hear:
 ```bash
 python3 - <<EOF
 import sounddevice as sd
