@@ -1,194 +1,124 @@
-## README – Local Voice Assistant (Wake Word + STT + TTS)
+# 🎤 Local Voice Assistant (Wake Word + Whisper.cpp + Piper TTS)
+**This version contains ONLY the Makefile workflow + the project filemap.**
 
-#### This project provides a fully offline voice assistant for Linux using:
+Everything—venv, dependencies, Whisper.cpp build, model downloads, and running—is done via the **Makefile**.
 
-##### OpenWakeWord → wake-word detection
+---
 
-##### Silence cutoff → automatic end-of-speech
+# 📁 Filemap
 
-##### Whisper.cpp (Base-Q5) → fast speech-to-text
-
-##### Piper TTS → fast, fully local text-to-speech
-
-Works well on low-spec hardware (e.g., 8GB RAM + Pentium N3710).
-
-
-## 📦 Project Structure
-```bash
+```
 voicebot/
+│── Makefile
 │── main.py
 │── wakeword.py
 │── stt.py
 │── tts.py
 │── vad.py
-│── Makefile
+│
+├── whisper.cpp/               # auto-cloned + compiled
+│   └── (build files)
 │
 ├── models/
-│   ├── ggml-base-q5_1.bin
-│   ├── openwakeword.tflite
+│   ├── ggml-base-q5_1.bin     # Whisper.cpp model
+│   ├── openwakeword.tflite    # Wake word model
 │   └── piper/
 │       ├── en_US-amy-low.onnx
 │       └── en_US-amy-low.onnx.json
 │
-└── whisper.cpp/
-    └── (compiled binaries)
+└── venv/                      # virtual environment (created by Makefile)
 ```
 
-## 🚀 Setup Instructions
-✅ 1. Install system dependencies
-```bash
-sudo apt update
-sudo apt install -y build-essential python3-pip python3-venv \
-    portaudio19-dev libsndfile1 ffmpeg
-```
+---
 
-✅ 2. Create virtual environment
-```bash
-cd voicebot
-python3 -m venv venv
-source venv/bin/activate
-```
+# 🛠 Makefile Instructions
 
-✅ 3. Install Python dependencies
-```bash
-pip install sounddevice soundfile numpy openwakeword silero-vad
-```
+Below is the **full Makefile-driven workflow**.  
+You do **NOT** manually install anything — the Makefile does it all.
 
-✅ 4. Build Whisper.cpp
-```bash
-git clone https://github.com/ggerganov/whisper.cpp
-cd whisper.cpp
-make -j4
-cd ..
-```
+---
 
-✅ 5. Download Whisper Base-Q5 model
-```bash
-mkdir -p models
-cd models
-wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin
-cd ..
-```
+## ✅ 1. Setup (ALL dependencies, venv, models, whisper.cpp)
 
-✅ 6. Install Piper TTS
-```bash
-pip install pipx
-pipx install piper-tts
-```
-
-Download the voice model:
-
-```bash
-mkdir -p models/piper
-cd models/piper
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/low/en_US-amy-low.onnx
-wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/low/en_US-amy-low.onnx.json
-cd ../..
-```
-
-✅ 7. Download OpenWakeWord model
-```bash
-mkdir -p models
-cd models
-wget https://github.com/dscripka/openwakeword/releases/download/v0.5.0/hey_computer.tflite -O openwakeword.tflite
-cd ..
-```
-
-🎤 8. Give microphone permissions (Linux)
-```bash
-sudo usermod -aG audio $USER
-sudo usermod -aG pulse $USER
-```
-
-
-Reboot after this.
-
-🧪 Running the Project
-
-Activate the venv:
-
-```bash
-source venv/bin/activate
-```
-
-Then run:
-
-```bash
-python3 main.py
-```
-
-You should hear:
-```bash
-System ready. Say hey computer.
-```
-
-Say “hey computer”:
-
-Wake word triggers
-
-You speak
-
-Silence cutoff ends recording
-
-Whisper transcribes
-
-Piper speaks back the response
-
-## 🛠 Using the Makefile
-
-▶ Full installation
 ```bash
 make setup
 ```
-▶ Run the assistant
+
+This command:
+
+- Creates a Python virtual environment (`venv/`)
+- Installs Python dependencies
+- Installs system libs (PortAudio, build tools)
+- Clones & compiles Whisper.cpp
+- Downloads:
+  - Whisper Base-Q5 model
+  - Wakeword model
+  - Piper voice model
+- Ensures microphone permissions
+- Ensures `piper` is available
+
+This installs everything needed in a single step.
+
+---
+
+## 🎤 2. Run the assistant
+
 ```bash
 make run
 ```
-▶ Build Whisper.cpp only
+
+This internally runs:
+
+```
+source venv/bin/activate && python3 main.py
+```
+
+You will hear:
+
+```
+System ready. Say hey computer.
+```
+
+---
+
+## 🔧 3. Build Whisper.cpp manually
+
 ```bash
 make whisper
 ```
-▶ Download all models
 
-(Handled automatically by setup, but can be done manually)
+---
+
+## 📦 4. Download all models only
+
 ```bash
-make models/ggml-base-q5_1.bin
-make models/openwakeword.tflite
-make models/piper/en_US-amy-low.onnx
+make models
 ```
-▶ Reset build artifacts
+
+Downloads:
+
+- `ggml-base-q5_1.bin`
+- `openwakeword.tflite`
+- `piper` ONNX voice model
+
+---
+
+## 🧽 5. Clean build artifacts (keeps models)
+
 ```bash
 make clean
 ```
-▶ Delete everything including venv + models
+
+---
+
+## 💥 6. Full reset (remove venv + whisper.cpp + models)
+
 ```bash
 make distclean
 ```
-🚨 Troubleshooting
-❌ Wakeword not triggering
 
-Check microphone:
+This returns the repo to a “fresh clone” state.
 
-```bash
-python3 - <<EOF
-import sounddevice as sd
-print(sd.query_devices())
-EOF
-```
+---
 
-Make sure your default input device exists and is not muted.
-
-❌ Whisper binary not found
-
-Ensure the path matches:
-
-```bash
-WHISPER_BIN = "./whisper.cpp/main"
-```
-❌ Piper command not found
-
-Add pipx to PATH:
-```bash
-echo 'export PATH=$PATH:$HOME/.local/bin' >> ~/.bashrc
-source ~/.bashrc
-```
+## 🎉 7. Ready!
