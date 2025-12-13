@@ -1,128 +1,200 @@
-# 🎤 Local Voice Assistant (Push-to-Talk + Cloud STT + Local Intent Execution)
-**This version contains ONLY the Makefile workflow + the project filemap.**
+# Telegram Bot Controller
 
-This is the **latest simplified architecture**:
+Sistema de control de navegador mediante comandos de lenguaje natural enviados a través de Telegram.
 
-- ❌ No wake word
-- ❌ No Whisper.cpp
-- ❌ No VAD
-- ❌ No Piper
-- ✅ Push-to-talk via **keyboard shortcut**
-- ✅ **Cloud STT (Google Speech-to-Text)**
-- ✅ **Local intent guessing**
-- ✅ **Local execution (e.g. Brave automation)**
+## Descripción
 
-Everything—**virtualenv, dependencies, and running**—is handled via the **Makefile**.
+Este proyecto permite controlar el navegador Brave en tu PC mediante mensajes de texto enviados a un bot de Telegram. El bot procesa los comandos usando un LLM (Large Language Model) que interpreta el lenguaje natural y los convierte en acciones ejecutables.
 
----
+## Arquitectura
 
-# 📁 Filemap
-```bash
-voicebot/
-│── Makefile
-│── main.py # Push-to-talk → Google STT → local intent execution
-│
-├── credentials/
-│ └── google.json # Google service account (not committed)
-│
-└── venv/ # virtual environment (created by Makefile)
+```
+Usuario → Telegram → Bot (PC) → LLM → Bot (PC) → Brave Browser
+                         ↑                ↓
+                         └─ config.json ──┘
 ```
 
+### Flujo de Datos
 
----
+1. **Usuario** envía un mensaje de texto al canal de Telegram
+2. **Bot de Telegram** (ejecutándose en PC) detecta el mensaje nuevo
+3. **Bot** envía el mensaje al LLM junto con el archivo de configuración local
+4. **LLM** procesa la información y genera un comando estructurado
+5. **Bot** recibe el comando, lo interpreta y lo ejecuta en Brave Browser
 
-# 🛠 Makefile Instructions
+## Estructura del Proyecto
 
-Below is the **full Makefile-driven workflow**.  
-You do **NOT** manually manage the virtual environment.
-
----
-
-## ✅ 1. Setup (venv + Python dependencies)
-
-```bash
-make setup
 ```
-This command:
-
-Creates a Python virtual environment (venv/)
-
-Installs required Python packages:
-
-sounddevice
-
-soundfile
-
-numpy
-
-pynput
-
-google-cloud-speech
-
-Verifies basic audio support
-
-⚠️ System audio libraries (PortAudio, ALSA) must already be present on Linux.
-
-🎤 2. Run the assistant
-```bash
-make run
+telegram-bot-controller/
+├── README.md
+├── requirements.txt
+├── .env.example
+├── config/
+│   └── config.json          # Configuración de comandos y preferencias
+├── src/
+│   ├── main.py              # Punto de entrada de la aplicación
+│   ├── telegram_bot.py      # Manejo del bot de Telegram
+│   ├── llm_processor.py     # Comunicación con el LLM
+│   ├── browser_controller.py # Control del navegador Brave
+│   └── utils/
+│       ├── logger.py        # Sistema de logging
+│       └── config_loader.py # Carga de configuración
+├── logs/
+│   └── bot.log              # Logs de ejecución
+└── tests/
+    ├── test_telegram.py
+    ├── test_llm.py
+    └── test_browser.py
 ```
 
-Internally runs:
+## Requisitos Previos
+
+- Python 3.8 o superior
+- Navegador Brave instalado
+- Cuenta de Telegram
+- Token de bot de Telegram (obtenido de @BotFather)
+- Acceso a un servicio LLM (OpenAI, Anthropic, etc.)
+
+## Instalación
+
+1. Clonar el repositorio:
 ```bash
-source venv/bin/activate && python3 main.py
+git clone https://github.com/tu-usuario/telegram-bot-controller.git
+cd telegram-bot-controller
 ```
 
-You will see:
-
-🟢 Ready. Hold Super + Alt + Space to speak.
-
-Runtime behavior
-
-Hold Super (Windows key) + Alt + Space
-
-Speak while holding
-
-Release keys → audio is sent to Google STT
-
-Text is returned
-
-Intent is guessed locally
-
-Local action is executed
-
-🔑 3. Google Credentials (Required)
-
-You must provide a Google Cloud Speech-to-Text service account:
-
-credentials/google.json
-
-
-And ensure this path is used in main.py:
+2. Crear entorno virtual:
 ```bash
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "credentials/google.json"
+python -m venv venv
+source venv/bin/activate  # En Windows: venv\Scripts\activate
 ```
 
-Speech-to-Text must be enabled in the Google Cloud project.
-
-🧽 4. Clean (remove venv only)
+3. Instalar dependencias:
 ```bash
-make clean
+pip install -r requirements.txt
 ```
 
-Removes:
-
-venv/
-
-
-Keeps source files and credentials.
-
-💥 5. Full reset (fresh clone state)
+4. Configurar variables de entorno:
 ```bash
-make distclean
+cp .env.example .env
+# Editar .env con tus credenciales
 ```
 
-Removes:
-venv/
+5. Configurar `config/config.json`:
+```json
+{
+  "browser": {
+    "path": "/usr/bin/brave-browser",
+    "profile": "Default"
+  },
+  "commands": {
+    "open_url": "Abrir navegador en {url}",
+    "search": "Buscar {query} en {engine}",
+    "close_tab": "Cerrar pestaña actual",
+    "new_tab": "Abrir nueva pestaña"
+  },
+  "llm": {
+    "model": "gpt-4",
+    "temperature": 0.7,
+    "max_tokens": 500
+  }
+}
+```
 
-Any generated audio files
+## Uso
+
+### Iniciar el Bot
+
+```bash
+python src/main.py
+```
+
+### Ejemplos de Comandos
+
+Envía mensajes al bot de Telegram:
+
+- "Abre YouTube"
+- "Busca recetas de pasta en Google"
+- "Cierra la pestaña actual"
+- "Abre una nueva pestaña con GitHub"
+- "Navega a la documentación de Python"
+
+## Configuración
+
+### Variables de Entorno (.env)
+
+```env
+TELEGRAM_BOT_TOKEN=tu_token_de_telegram
+TELEGRAM_CHAT_ID=tu_chat_id
+LLM_API_KEY=tu_api_key_del_llm
+LLM_PROVIDER=openai  # o anthropic, etc.
+```
+
+### Archivo de Configuración (config.json)
+
+El archivo `config.json` define:
+
+- **browser**: Configuración del navegador Brave
+- **commands**: Mapeo de comandos disponibles
+- **llm**: Parámetros del modelo de lenguaje
+- **preferences**: Preferencias personalizadas del usuario
+
+## Seguridad
+
+- Nunca compartas tu `.env` o tokens en repositorios públicos
+- El bot solo responde a chats autorizados (definidos en `TELEGRAM_CHAT_ID`)
+- Todos los comandos son validados antes de ejecutarse
+- Los logs no contienen información sensible
+
+## Desarrollo
+
+### Ejecutar Tests
+
+```bash
+pytest tests/
+```
+
+### Agregar Nuevos Comandos
+
+1. Define el comando en `config/config.json`
+2. Implementa la lógica en `src/browser_controller.py`
+3. Actualiza el prompt del LLM en `src/llm_processor.py`
+
+## Contribuir
+
+1. Fork el proyecto
+2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -m 'Agrega nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
+
+## Troubleshooting
+
+### El bot no responde
+- Verifica que el token de Telegram sea correcto
+- Asegúrate de que el bot esté ejecutándose
+- Revisa los logs en `logs/bot.log`
+
+### Brave no se abre
+- Verifica la ruta del navegador en `config.json`
+- Asegúrate de tener permisos de ejecución
+- Prueba abriendo Brave manualmente
+
+### El LLM no genera comandos correctos
+- Ajusta la temperatura en `config.json`
+- Verifica que el prompt sea claro
+- Revisa el balance de tu API key
+
+## Licencia
+
+MIT License - Ver archivo `LICENSE` para más detalles
+
+## Autor
+
+Tu Nombre - [@tu_usuario](https://github.com/tu-usuario)
+
+## Agradecimientos
+
+- Python Telegram Bot library
+- Selenium WebDriver
+- OpenAI / Anthropic API
