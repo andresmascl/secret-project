@@ -1,13 +1,12 @@
-# Scrapbot.AI Makefile
-
 # -----------------------------
-# Voicebot – Makefile
+# Telegram Bot Controller – Makefile
 # -----------------------------
 
 VENV := venv
-WHISPER_DIR := whisper.cpp
-WHISPER_BIN := $(WHISPER_DIR)/main
-PIPX_BIN := $(HOME)/.local/bin
+PYTHON := $(VENV)/bin/python3
+PIP := $(VENV)/bin/pip
+CONFIG_DIR := config
+ENV_FILE := $(CONFIG_DIR)/.env
 
 # Default target
 all: setup
@@ -16,75 +15,93 @@ all: setup
 # 1. Create virtual environment
 # -----------------------------
 venv:
+	@echo "📦 Creando entorno virtual..."
 	python3 -m venv $(VENV)
+	@echo "✅ Entorno virtual creado"
 
 # -----------------------------
 # 2. Install Python dependencies
 # -----------------------------
 install: venv
+	@echo "📥 Instalando dependencias..."
 	. $(VENV)/bin/activate && \
 	pip install --upgrade pip && \
-	pip install sounddevice soundfile numpy openwakeword silero-vad
+	pip install -r requirements.txt
+	@echo "✅ Dependencias instaladas"
 
 # -----------------------------
-# 3. Build whisper.cpp
+# 3. Setup configuration files
 # -----------------------------
-whisper:
-	test -d $(WHISPER_DIR) || git clone https://github.com/ggerganov/whisper.cpp
-	$(MAKE) -C $(WHISPER_DIR) -j4
+config:
+	@echo "⚙️  Configurando archivos..."
+	mkdir -p $(CONFIG_DIR)
+	@if [ ! -f $(ENV_FILE) ]; then \
+		cp $(CONFIG_DIR)/.env.example $(ENV_FILE); \
+		echo "📝 Archivo .env creado desde .env.example"; \
+		echo "⚠️  IMPORTANTE: Edita $(ENV_FILE) con tus credenciales"; \
+	else \
+		echo "✅ Archivo .env ya existe"; \
+	fi
+	@if [ ! -f $(CONFIG_DIR)/config.json ]; then \
+		echo "⚠️  config.json no encontrado. Por favor créalo manualmente"; \
+	else \
+		echo "✅ config.json encontrado"; \
+	fi
 
 # -----------------------------
-# 4. Download Whisper Base-Q5 model
+# 4. Validate environment setup
 # -----------------------------
-models/ggml-base-q5_1.bin:
-	mkdir -p models
-	wget https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin -O models/ggml-base-q5_1.bin
+validate:
+	@echo "🔍 Validando configuración..."
+	@if [ ! -f $(ENV_FILE) ]; then \
+		echo "❌ Archivo .env no encontrado"; \
+		exit 1; \
+	fi
+	@if [ ! -f $(CONFIG_DIR)/config.json ]; then \
+		echo "❌ Archivo config.json no encontrado"; \
+		exit 1; \
+	fi
+	@. $(VENV)/bin/activate && python3 -c "import telegram, selenium, anthropic" 2>/dev/null && \
+		echo "✅ Todas las dependencias están instaladas" || \
+		(echo "❌ Faltan dependencias. Ejecuta: make install" && exit 1)
+	@echo "✅ Configuración validada"
 
 # -----------------------------
-# 5. Install Piper via pipx
+# 5. Install browser driver
 # -----------------------------
-piper:
-	pip install pipx || true
-	pipx install piper-tts || true
+webdriver:
+	@echo "🌐 Instalando WebDriver para Brave/Chrome..."
+	. $(VENV)/bin/activate && \
+	pip install webdriver-manager
+	@echo "✅ WebDriver instalado"
 
 # -----------------------------
-# 6. Download Piper voice
+# 6. Full setup (everything)
 # -----------------------------
-models/piper/en_US-amy-low.onnx:
-	mkdir -p models/piper
-	wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/low/en_US-amy-low.onnx -O models/piper/en_US-amy-low.onnx
-	wget https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_US/amy/low/en_US-amy-low.onnx.json -O models/piper/en_US-amy-low.onnx.json
+setup: install config webdriver
+	@echo ""
+	@echo "╔════════════════════════════════════════════════════════════╗"
+	@echo "║  ✅ Instalación completada exitosamente                   ║"
+	@echo "╚════════════════════════════════════════════════════════════╝"
+	@echo ""
+	@echo "📋 Próximos pasos:"
+	@echo "   1. Edita $(ENV_FILE) con tus credenciales"
+	@echo "   2. Edita $(CONFIG_DIR)/config.json con tu configuración"
+	@echo "   3. Ejecuta 'make validate' para verificar"
+	@echo "   4. Ejecuta 'make run' para iniciar el bot"
+	@echo ""
 
 # -----------------------------
-# 7. Download wakeword model
+# 7. Run the bot
 # -----------------------------
-models/openwakeword.tflite:
-	mkdir -p models
-	wget https://github.com/dscripka/openwakeword/releases/download/v0.5.0/hey_computer.tflite -O models/openwakeword.tflite
-
-# -----------------------------
-# 8. Full setup (everything)
-# -----------------------------
-setup: install whisper models/ggml-base-q5_1.bin models/piper/en_US-amy-low.onnx models/openwakeword.tflite
-	@echo "✔ All components installed."
-
-# -----------------------------
-# 9. Run the assistant
-# -----------------------------
-run:
+run: validate
+	@echo "🚀 Iniciando Telegram Bot Controller..."
+	@echo ""
 	. $(VENV)/bin/activate && python3 main.py
 
-# -----------------------------
-# 10. Clean build artifacts
-# -----------------------------
-clean:
-	rm -rf $(WHISPER_DIR)/build
-	rm -f $(WHISPER_BIN)
+.PHONY: clean-venv
 
-# -----------------------------
-# 11. Clean everything
-# -----------------------------
-distclean: clean
-	rm -rf $(VENV)
-	rm -rf models
-
+# Elimina el entorno virtual
+clean-venv:
+	rm -rf venv
+	@echo "Virtual environment removed."

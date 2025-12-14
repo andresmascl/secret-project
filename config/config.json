@@ -1,0 +1,6 @@
+{
+  "_comment": "Configuración del Telegram Bot Controller",
+  "_version": "1.0.0",
+  "_description": "Este archivo define los parámetros de operación del bot, comandos disponibles y preferencias del navegador",
+  "_last_updated": "2024-12-12"
+}

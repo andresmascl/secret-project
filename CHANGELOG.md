@@ -18,29 +18,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-12-10
 
 ### Added
-- Initial release of Scrap AI Bot
-- Voice control layer on top of Anthropic's Computer Use Demo
-- Wake word detection using Porcupine ("Ok Computer")
-- Audio capture with PyAudio
-- Speech-to-text using OpenAI Whisper API
-- Integration with Claude Computer Use API
-- Docker containerization for safe execution
-- Complete documentation (README, ARCHITECTURE, AI_INSTRUCTIONS, CONTRIBUTING)
-- Installation and management scripts (install.sh, start.sh, stop.sh)
-- Configuration system with YAML and environment variables
-- Logging infrastructure with structlog
-- Basic error handling and retry logic
-- Health checks for Docker containers
-- Audio device passthrough configuration
-- AGPL-3.0 license with commercial licensing option
+Notas Adicionales
+Convenciones de Encabezados
+Todos los archivos Python siguen este formato:
 
-### Known Issues
-- Audio passthrough may require manual configuration on some systems
-- Wake word detection sensitivity needs tuning per environment
-- Limited to English language only
-- Requires stable internet connection for all operations
-- High API costs for extended use
-- No error recovery for failed multi-step tasks
+Docstring de módulo con descripción completa
+Línea de separación con caracteres =
+Descripción detallada de funcionalidades
+Dependencias (si aplica)
+Metadatos: Autor, Versión, Fecha, Licencia
+
+Archivos de Configuración
+Los archivos JSON y de configuración incluyen:
+
+Campo _comment con descripción
+Campo _version para control de versiones
+Campo _description con detalles adicionales
+Campo _last_updated con fecha de modificación
+
+Variables de Entorno
+El archivo .env.example incluye:
+
+Banner con título del proyecto
+Instrucciones claras de uso
+Advertencias de seguridad
+Fecha de última actualización
 
 ### Requirements
 - Ubuntu 20.04+ or Debian 11+
@@ -51,14 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Documentation
 - README.md - User guide and quick start
-- ARCHITECTURE.md - Technical architecture details
-- AI_INSTRUCTIONS.md - Guidelines for AI coding assistants
 - CONTRIBUTING.md - Contribution guidelines
 
 ### Credits
-- Built on [Anthropic's Computer Use Demo](https://github.com/anthropics/claude-quickstarts/tree/main/computer-use-demo)
-- Wake word detection by [Picovoice Porcupine](https://github.com/Picovoice/porcupine)
-- Speech recognition by [OpenAI Whisper](https://github.com/openai/whisper)
 
 ---
 
@@ -74,6 +71,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Fixed** - Bug fixes
   - **Security** - Security improvements
 
-### Links
-- [Unreleased]: https://github.com/andresmascl/scrap-ai-bot/compare/v0.1.0...HEAD
-- [0.1.0]: https://github.com/andresmascl/scrap-ai-bot/releases/tag/v0.1.0
