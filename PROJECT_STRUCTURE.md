@@ -80,17 +80,15 @@ Rhasspy is treated as a *black box voice frontend*.
 
 ```
 browser/
-├── brave/
-├── chrome/
-├── firefox/
+├── controllers
 └── apps/
 ```
 
 This layer is responsible for **controlling real browsers** using **Playwright**, always in **headful mode** with **persistent user profiles**.
 
-### Browser Folders (`brave/`, `chrome/`, `firefox/`)
+### Controllers files (`brave`, `chrome`, `firefox`)
 
-Each folder represents a **browser adapter**.
+Each file in this folder represents a **browser adapter**.
 
 Responsibilities:
 - Launch the browser with the correct binary
@@ -110,7 +108,7 @@ browser/apps/
 └── test/
 ```
 
-Each file here represents a **web application controller** that runs *inside* a browser.
+Each file here represents a **website controller** that runs *inside* a browser.
 
 These files are browser‑agnostic and operate on a Playwright `Page` object.
 
@@ -171,12 +169,7 @@ Tests are **headful by design**, matching real usage.
   - No stateless sessions
 
 - **Testability**
-  - Application logic is testable without voice input
+  - Browser controlling logic is testable without voice input
 
 - **Future extensibility**
-  - New apps go in `browser/apps/`
-  - New browsers get their own adapter folder
-
----
-
-This structure intentionally avoids over‑abstraction while keeping long‑term flexibility.
+  - New controllable sites go in `browser/apps/`
