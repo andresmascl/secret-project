@@ -1,6 +1,6 @@
-# Alekz
+# scrapbot.ai
 
-**Alekz** is an open-source, local, Linux-based voice assistant designed to behave like a personal Alexa-style system — but **fully under your control**.
+**scrapbot** is an open-source, local, Linux-based voice assistant designed to behave like a personal Alexa-style system — but **fully under your control**.
 
 It combines **Rhasspy** for offline voice processing and **Playwright** for controlling a **real, headful browser with your personal user session**, enabling voice-driven interaction with services like YouTube, Gmail, and local applications.
 
