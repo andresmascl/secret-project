@@ -6,6 +6,15 @@ The project is intentionally minimal and modular, with a strong emphasis on **re
 
 ---
 
+### Usage
+make install
+
+make run
+
+make clean
+
+---
+
 ## What Ok House Does
 
 - Continuously listens to microphone input
