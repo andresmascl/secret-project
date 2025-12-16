@@ -10,8 +10,8 @@ from sentence_transformers import SentenceTransformer, util
 RATE = 16000
 FRAME_DURATION_MS = 30
 FRAME_SIZE = int(RATE * FRAME_DURATION_MS / 1000)
-SILENCE_FRAMES_TO_STOP = 20  # ~600ms
-WAKE_WORD = "alezo"
+SILENCE_FRAMES_TO_STOP = 20  # ~600ms of silence to consider end of command
+WAKE_WORD = "Ok House"
 
 # --------------------
 # Models
