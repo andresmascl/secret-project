@@ -1,123 +1,116 @@
-# scrapbot.ai
+# Hey Computer
 
-**scrapbot** is an open-source, local, Linux-based voice assistant designed to behave like a personal Alexa-style system — but **fully under your control**.
+**Hey Computer** is a local-first, Linux-based voice assistant focused on **continuous listening**, **wake word detection**, **speech understanding**, and **voice feedback**, designed to run entirely on an old laptop or low-resource machine.
 
-It combines **Rhasspy** for offline voice processing and **Playwright** for controlling a **real, headful browser with your personal user session**, enabling voice-driven interaction with services like YouTube, Gmail, and local applications.
-
-scrapbot is intentionally minimal, explicit, and hackable.
+The project is intentionally minimal and modular, with a strong emphasis on **real-time audio processing**, **AI-driven intent recognition**, and **developer ownership**.
 
 ---
 
-## What scrapbot Does (Today)
+## What Hey Computer Does
 
-- Runs **locally on Linux** (PC, NUC, or laptop)
-- Listens for a wake word: **"scrapbot"**
-- Converts voice → text using Rhasspy
-- Translates voice intents into actions
-- Controls a **real browser window** (Brave / Chrome / Firefox)
-  - Headful (visible)
-  - Persistent user profile (your real login, cookies, sessions)
-- Automates websites like:
-  - YouTube (search, play, navigate)
-  - Gmail (read / open emails — WIP)
+- Continuously listens to microphone input
+- Detects a custom wake word ("Alezo") using semantic embeddings
+- Records speech and waits for silence
+- Converts speech to text (STT)
+- Infers user intent from a predefined intent list
+- Produces structured JSON responses
+- Replies to the user using local neural text-to-speech (TTS)
 
-Everything runs on your machine. No cloud dependency is required.
+All core logic is designed to be **local-first** and runnable on commodity hardware.
 
 ---
 
-## What scrapbot Explicitly Does NOT Do
+## What Hey Computer Does NOT Do (yet)
 
-- ❌ No hidden automation behind APIs you don’t control
-- ❌ No smart-home vendor lock-in
-- ❌ No attempt to replace full Alexa / Google Assistant ecosystems
+- ❌ Browser automation
+- ❌ Smart-home integrations
+- ❌ Mobile app
+- ❌ No always-on cloud dependency
+- ❌ Consumer assistant UI
 
-scrapbot.io is **not** a consumer product. It is a **personal automation platform**.
-
----
-
-## Supported Platform
-
-- **OS:** Linux (primary target)
-- **Architecture:** x86_64
-- **Browsers:**
-  - Brave
-  - Google Chrome
-  - Firefox
-- **Python:** 3.10+
+Hey Computer is a **voice processing and intent inference engine**, not a full Alexa replacement (yet).
 
 ---
 
-## High-Level Architecture
+## Voice Processing Pipeline
 
 ```
-Voice (Mic)
-   ↓
-Rhasspy
-   ↓  (intent)
-stt
-   ↓
-intent detection
-   ↓
-return json
-   ↓
-tts
-   ↓
-Browser Controller (Playwright)
-   ↓
-Website App (YouTube, Gmail, etc.)
+→ Continuous listening (local)
+→ Wake word detection (semantic embeddings) (local)
+→ Silence detection (local)
+→ Speech-to-Text (STT) (cloud)
+→ Intent recognition (cloud)
+→ JSON response
+→ Text-to-Speech (TTS) (local)
 ```
 
-Rhasspy is treated as a **black-box voice frontend**.
-Browser apps are **browser-agnostic** and operate on Playwright pages.
+---
+
+## Tech Stack (LinkedIn-Friendly)
+
+### Audio & Runtime
+- **Python 3.10+**
+- **AsyncIO**
+- **PyAudio** (real-time microphone streaming)
+- **WebRTC VAD** (silence detection)
+
+### AI / NLP
+- **Sentence Transformers** — wake word & semantic intent matching
+- **Google Speech-to-Text** — speech recognition
+- **Google Dialogflow** — intent classification and NLP
+
+### Voice Output
+- **Coqui TTS** — local neural text-to-speech (CPU-based)
+
+### System
+- **Linux (Debian / Ubuntu)**
+- **Local-first, event-driven architecture**
 
 ---
 
-## Project Structure
+## Example Flow
 
-The project is structured around clear separation of concerns:
-
-- `assist/` → Voice & intent extraction (Rhasspy)
-- `browser/` → Browser control and website automation
-- `browser/apps/` → Website-specific logic (YouTube, Gmail, …)
-- `browser/apps/test/` → Headful Playwright tests
-
-See [`PROJECT_STRUCTURE.md`](./PROJECT_STRUCTURE.md) for the full architectural breakdown.
-
----
-
-## Running Alekz (Happy Path)
-
-> This describes the *intended* usage flow. Setup scripts may evolve.
-
-1. Start Rhasspy
-2. Start scrapbot services
-3. Say:
+1. System continuously listens to audio input
+2. User says:
    
-   **“scrapbot, play lo-fi music on YouTube”**
+   **"Alezo, what time is it"**
 
-4. A real browser window opens
-5. YouTube loads using your logged-in account
-6. The requested video starts playing
-
----
-
-## Design Principles
-
-- **Local-first** — works without internet (except for websites)
-- **User-owned sessions** — real browser, real account
-- **Headful automation** — visible, debuggable, honest
-- **Explicit over magical** — no hidden behavior
-- **Composable** — voice, browser, and apps are decoupled
+3. Wake word is detected via embeddings
+4. Speech is recorded until silence is detected
+5. Audio is transcribed to text
+6. Intent is inferred and returned as structured JSON
+7. A spoken response is generated via TTS
 
 ---
 
-## Current Status
+## Hardware Requirements
+
+- Any Linux laptop or PC
+- x86_64 CPU
+- 4–8 GB RAM recommended
+- Microphone
+- Speakers or headphones
+
+Designed to run without GPU acceleration.
+
+---
+
+## Project Status
 
 ⚠️ Early-stage / experimental
 
-- Architecture is stable
-- APIs and behavior may change
-- Focus is on correctness, not polish
+- Core pipeline defined
+- APIs and interfaces may evolve
+- Focus is on correctness and architecture, not polish
+
+---
+
+## Philosophy
+
+- **Local-first** — you own the system
+- **Explicit over magical** — transparent processing
+- **Minimal dependencies** — fewer moving parts
+- **Composable** — easy to extend with new intents
 
 ---
 
@@ -127,12 +120,13 @@ Open-source. License to be defined.
 
 ---
 
-## Who This Is For
+## Audience
 
-- Developers
-- Tinkerers
+- Backend engineers
+- Applied AI / NLP engineers
 - Linux users
-- People who want voice control **without giving up control**
+- Developers interested in real-time audio systems
 
-If you’re looking for convenience, buy an Alexa.
-If you’re looking for ownership, build Scrapbot.ai.
+If you want a consumer assistant, buy one.
+If you want to understand and control the pipeline, build Hey Computer.
+
