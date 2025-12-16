@@ -25,10 +25,10 @@ All core logic is designed to be **local-first** and runnable on commodity hardw
 - ❌ Browser automation
 - ❌ Smart-home integrations
 - ❌ Mobile app
-- ❌ No always-on cloud dependency
+- ❌ Always-on cloud dependency
 - ❌ Consumer assistant UI
 
-Ok House is a **voice processing and intent inference engine**, not a full Alexa replacement (yet).
+Ok House is a **voice processing and intent inference engine**, not a full Alexa replacement.
 
 ---
 
@@ -65,6 +65,7 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 ### System
 - **Linux (Debian / Ubuntu)**
 - **Local-first, event-driven architecture**
+- **Conternarized ready to run project**
 
 ---
 
@@ -90,9 +91,6 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 - 4–8 GB RAM recommended
 - Microphone
 - Speakers or headphones
-
-Designed to run without GPU acceleration.
-
 ---
 
 ## Project Status
@@ -101,7 +99,9 @@ Designed to run without GPU acceleration.
 
 - Core pipeline defined
 - APIs and interfaces may evolve
-- Focus is on correctness and architecture, not polish
+
+⚠️ todo
+- Browser control
 
 ---
 
@@ -128,5 +128,5 @@ Open-source. License to be defined.
 - Developers interested in real-time audio systems
 
 If you want a consumer assistant, buy one.
-If you want to understand and control the pipeline, build Ok House.
+If you want to understand and control the pipeline, deploy Ok House.
 
