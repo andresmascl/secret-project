@@ -44,13 +44,7 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 ## Voice Processing Pipeline
 
 ```
-→ Continuous listening (local)
-→ Wake word detection (semantic embeddings) (local)
-→ Silence detection (local)
-→ Speech-to-Text (STT) (cloud)
-→ Intent recognition (cloud)
-→ JSON response
-→ Text-to-Speech (TTS) (local)
+→ Continuous listening (local) → Wake word detection (semantic embeddings) (local) → Silence detection (local) → Speech-to-Text (STT) (cloud) → Intent recognition (cloud) → JSON response → Text-to-Speech (TTS) (local)
 ```
 
 ---

@@ -1,12 +1,16 @@
-# Audio input
-pyaudio==0.2.14
+# Audio
+pyaudio
+webrtcvad
+numpy
 
-# Voice activity detection (silence detection)
-webrtcvad==2.0.10
+# Async
+asyncio
 
-# Embeddings for wake word / intent similarity
-sentence-transformers==2.7.0
-torch>=2.0.0
+# Embeddings / NLP (CPU ONLY)
+torch==2.5.0+cpu
+sentence-transformers
 
-# Numeric processing
-numpy>=1.24.0
+# PyTorch CPU index
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+setuptools<81
