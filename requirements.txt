@@ -1,7 +1,0 @@
-# Telegram Bot Controller - Dependencias del Proyecto
-# Python 3.8+
-# 
-# Instalación: pip install -r requirements.txt
-# Actualización: pip install --upgrade -r requirements.txt
-
-telegram
