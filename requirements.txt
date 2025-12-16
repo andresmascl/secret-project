@@ -1,0 +1,12 @@
+# Audio input
+pyaudio==0.2.14
+
+# Voice activity detection (silence detection)
+webrtcvad==2.0.10
+
+# Embeddings for wake word / intent similarity
+sentence-transformers==2.7.0
+torch>=2.0.0
+
+# Numeric processing
+numpy>=1.24.0

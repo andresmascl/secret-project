@@ -46,7 +46,7 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 
 ---
 
-## Tech Stack (LinkedIn-Friendly)
+## Tech Stack
 
 ### Audio & Runtime
 - **Python 3.10+**
@@ -116,7 +116,7 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 
 ## License
 
-You are welcome to fork this project
+You are welcome to fork this project.
 
 ---
 
@@ -128,4 +128,4 @@ You are welcome to fork this project
 - Developers interested in real-time audio systems
 
 If you want a consumer assistant, buy one.
-If you want to understand and control the pipeline, deploy Ok House.
+If you want to understand and control the pipeline, deploy Ok House
