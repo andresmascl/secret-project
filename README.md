@@ -18,7 +18,7 @@ make clean
 ## What Ok House Does
 
 - Continuously listens to microphone input
-- Detects a custom wake word ("Alezo") using semantic embeddings
+- Detects a custom wake word ("hey mycroft") using semantic embeddings
 - Records speech and waits for silence
 - Converts speech to text (STT)
 - Infers user intent from a predefined intent list
@@ -32,6 +32,7 @@ All core logic is designed to be **local-first** and runnable on commodity hardw
 ## What Ok House Does NOT Do (yet)
 
 - ❌ Browser automation
+- ❌ Custom Ok House wakeword
 - ❌ Smart-home integrations
 - ❌ Mobile app
 - ❌ Always-on cloud dependency
@@ -44,7 +45,19 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 ## Voice Processing Pipeline
 
 ```
-→ Continuous listening (local) → Wake word detection (semantic embeddings) (local) → Silence detection (local) → Speech-to-Text (STT) (cloud) → Intent recognition (cloud) → JSON response → Text-to-Speech (TTS) (local)
+→ Continuous listening (local) 
+
+→ Wake word detection (local) 
+
+→ Silence detection (local) 
+
+→ Speech-to-Text (STT) (cloud) 
+
+→ Intent recognition (cloud) 
+
+→ JSON response 
+
+→ Text-to-Speech (TTS) (local)
 ```
 
 ---
@@ -77,7 +90,7 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 1. System continuously listens to audio input
 2. User says:
    
-   **"Ok House, what time is it"**
+   **"hey mycroft, what time is it"**
 
 3. Wake word is detected via embeddings
 4. Speech is recorded until silence is detected
