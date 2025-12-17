@@ -24,7 +24,7 @@ install: venv
 # Run listener
 # -------------------------
 run:
-	$(PYTHON) listener.py
+	$(PYTHON) main.py
 
 # -------------------------
 # Clean environment

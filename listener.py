@@ -1,14 +1,9 @@
+# listener.py
 import asyncio
-import pyaudio
 import numpy as np
 import wave
 import time
 from openwakeword.model import Model
-
-# --------------------
-# Audio Device
-# --------------------
-INPUT_DEVICE_INDEX = 3
 
 # --------------------
 # Configuration
@@ -44,14 +39,18 @@ def safe_rms(frame: bytes) -> float:
 def save_wav(frames, filename):
     with wave.open(filename, "wb") as wf:
         wf.setnchannels(CHANNELS)
-        wf.setsampwidth(2)  # int16
+        wf.setsampwidth(2)
         wf.setframerate(RATE)
         wf.writeframes(b"".join(frames))
 
 # --------------------
-# Listener
+# Public API
 # --------------------
 async def listen(stream):
+    """
+    Continuous wake-word listener.
+    Blocks forever until cancelled.
+    """
     print("🎙️ Always listening (wake word + recording)…")
 
     recording = False
@@ -71,16 +70,14 @@ async def listen(stream):
         audio_np = np.frombuffer(frame, dtype=np.int16)
         now = time.time()
 
-        # ---------- WAKE WORD (always infer when not recording)
+        # ---------- WAKE WORD ----------
         if not recording:
             preds = wake_model.predict(audio_np)
             score = preds.get(WAKE_KEY, 0.0)
 
-            # re-arm when score drops low
             if score < WAKE_RESET_THRESHOLD:
                 wake_armed = True
 
-            # trigger only if armed AND cooldown passed
             if (
                 wake_armed
                 and score >= THRESHOLD
@@ -93,7 +90,7 @@ async def listen(stream):
                 silence_count = 0
                 continue
 
-        # ---------- RECORDING MODE
+        # ---------- RECORDING ----------
         if recording:
             audio_buffer.append(frame)
 
@@ -115,33 +112,3 @@ async def listen(stream):
                 last_record_end = time.time()
 
         await asyncio.sleep(0)
-
-# --------------------
-# Entry point
-# --------------------
-if __name__ == "__main__":
-    p = None
-    stream = None
-
-    try:
-        p = pyaudio.PyAudio()
-        stream = p.open(
-            format=pyaudio.paInt16,
-            channels=CHANNELS,
-            rate=RATE,
-            input=True,
-            input_device_index=INPUT_DEVICE_INDEX,
-            frames_per_buffer=FRAME_SIZE,
-        )
-
-        asyncio.run(listen(stream))
-
-    except KeyboardInterrupt:
-        print("\nStopping…")
-
-    finally:
-        if stream:
-            stream.stop_stream()
-            stream.close()
-        if p:
-            p.terminate()
