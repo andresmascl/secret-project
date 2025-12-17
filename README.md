@@ -132,7 +132,7 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 
 ## License
 
-You are welcome to fork this project. Vibe coded with chatgpt free version.
+You are welcome to fork this project. Vibe coded with free chatgpt version GPT-5.2.
 MIT License
 
 ---
