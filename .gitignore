@@ -1,2 +1,3 @@
 .venv
 recording_*
+__pycache__/*
