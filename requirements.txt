@@ -1,29 +1,24 @@
-# Audio
-pyaudio
-webrtcvad
-numpy
-
-# Async
-asyncio
-
-# Embeddings / NLP (CPU ONLY)
-torch==2.5.0+cpu
-sentence-transformers
-
-# PyTorch CPU index
+# --- Index for CPU-only Torch (Must be at the top) ---
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# Packaging
-setuptools<81
+# --- Audio Core ---
+pyaudio
+numpy
+silero-vad
+
+# --- AI / Machine Learning (CPU Optimized) ---
+torch==2.5.1+cpu
+torchaudio==2.5.1+cpu
+sentence-transformers
 openwakeword
 onnxruntime
 
-# Google Cloud / Vertex AI
+# --- Google Cloud & Vertex AI ---
 google-cloud-speech
 google-cloud-aiplatform
 google-auth
 google-auth-oauthlib
 
-
+# --- Utilities ---
 python-dotenv>=1.0.0
-
+setuptools>=70.0.0

@@ -2,4 +2,5 @@
 creds/*.json
 recording_*
 configs/__pycache__/*
+__pycache__/
 keys/*

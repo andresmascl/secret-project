@@ -1,23 +1,27 @@
-# Ok House
+# Scrapbot.ai
 
-**Ok House** is a local-first, Linux-based voice assistant focused on **continuous listening**, **wake word detection**, **speech understanding**, and **voice feedback**, designed to run entirely on an old laptop or low-resource machine.
+**Scrapbot.ai** is a local-first, Linux-based voice assistant focused on **continuous listening**, **wake word detection**, **speech understanding**, and **voice feedback**, designed to run entirely on an old laptop or low-resource machine.
 
 The project is intentionally minimal and modular, with a strong emphasis on **real-time audio processing**, **AI-driven intent recognition**, and **developer ownership**.
 
 ---
 
-### Usage
-make help
+## Quick Start
 
-make install
-
-make run
-
-make clean
+```bash
+make help      # Show available commands
+make build     # Build the Docker image
+make up        # Start container in background
+make run       # Start container in foreground (see logs)
+make down      # Stop and remove container
+make logs      # Follow container logs
+make shell     # Open terminal inside container
+make clean     # Remove image and cached volumes
+```
 
 ---
 
-## What Ok House Does
+## What Scrapbot.ai Does
 
 - Continuously listens to microphone input
 - Detects a custom wake word ("hey mycroft")
@@ -31,69 +35,106 @@ All core logic is designed to be **local-first** and runnable on commodity hardw
 
 ---
 
-## What Ok House Does NOT Do (yet)
+## What Scrapbot.ai Does NOT Do (yet)
 
-- ❌ Browser automation
-- ❌ Custom Ok House wakeword
-- ❌ Smart-home integrations
-- ❌ Mobile app
-- ❌ Always-on cloud dependency
-- ❌ Consumer assistant UI
+- Browser automation
+- Custom Scrapbot.ai wakeword
+- Smart-home integrations
+- Mobile app
+- Always-on cloud dependency
+- Consumer assistant UI
 
-Ok House is a **voice processing and intent inference engine**, not a full Alexa replacement.
+Scrapbot.ai is a **voice processing and intent inference engine** (for now), not a full Alexa replacement.
 
 ---
 
 ## Voice Processing Pipeline
 
 ```
-→ Continuous listening (local) 
-
-→ Wake word detection (local) 
-
-→ Silence detection (local) 
-
-→ Speech-to-Text (STT) (cloud) 
-
-→ Intent recognition (cloud) 
-
-→ JSON response 
-
-→ Text-to-Speech (TTS) (local)
+Continuous listening (local) 
+  ↓
+Wake word detection (local) 
+  ↓
+Silence detection (local) 
+  ↓
+Speech-to-Text (STT) (cloud) 
+  ↓
+Intent recognition (cloud) 
+  ↓
+JSON response 
+  ↓
+Text-to-Speech (TTS) (local)
 ```
+
+---
+
+## Project Structure
+
+```
+SCRAPBOT.AI/
+├── configs/
+│   ├── listener_config.py
+│   └── reasoner_config.py
+├── creds/
+├── tests/
+├── .env
+├── .env.demo
+├── docker-compose.yaml
+├── Dockerfile
+├── listener.py
+├── main.py
+├── Makefile
+├── README.md
+├── reasoner.py
+└── requirements.txt
+```
+
+**Key Files:**
+- `listener.py` - Wake word detection, Audio capture, and Silence detection
+- `reasoner.py` - Text to Speech, Intent recognition, and Response generation
+- `main.py` - Main entry point and event loop orchestration
+- `configs/listener_config.py` - Audio and Wake Word settings
+- `configs/reasoner_config.py` - NLP pipeline configuration
 
 ---
 
 ## Tech Stack
 
-### Audio & Runtime
-- **Python 3.10+**
-- **AsyncIO**
-- **PyAudio** (real-time microphone streaming)
-- **WebRTC VAD** (silence detection)
+**Audio & Runtime**
+- Python 3.10+
+- AsyncIO - event-driven architecture
+- PyAudio - real-time microphone streaming
+- WebRTC VAD - silence detection
 
-### AI / NLP
-- **Sentence Transformers** — wake word & semantic intent matching
-- **Google Speech-to-Text** — speech recognition
-- **Google Dialogflow** — intent classification and NLP
+**AI / NLP**
+- Sentence Transformers - wake word & semantic intent matching
+- Google Speech-to-Text - speech recognition
+- Google Dialogflow - intent classification and NLP
 
-### Voice Output
-- **Coqui TTS** — local neural text-to-speech (CPU-based)
+**Voice Output**
+- Coqui TTS - local neural text-to-speech (CPU-based)
 
-### System
-- **Linux (Debian / Ubuntu)**
-- **Local-first, event-driven architecture**
-- **Conternarized ready to run project**
+**Infrastructure**
+- Docker - containerized deployment
+- Linux (Debian / Ubuntu) - primary platform
+
+---
+
+## Configuration
+
+The system uses a modular configuration approach:
+
+- `listener_config.py` - audio capture, wake word detection settings
+- `reasoner_config.py` - intent recognition, NLP pipeline settings
+- `.env` - API keys and secrets (not committed)
+- `.env.demo` - template for required environment variables
 
 ---
 
 ## Example Flow
 
 1. System continuously listens to audio input
-2. User says:
-   
-   **"hey mycroft, what time is it"**
-
+2. User says: "hey mycroft, what time is it"
 3. Wake word is detected via embeddings
 4. Speech is recorded until silence is detected
 5. Audio is transcribed to text
@@ -106,36 +147,63 @@ Ok House is a **voice processing and intent inference engine**, not a full Alexa
 
 - Any Linux laptop or PC
 - x86_64 CPU
-- 4–8 GB RAM recommended
+- 4-8 GB RAM recommended
 - Microphone
 - Speakers or headphones
+
+---
+
+## Docker Deployment
+
+Run Scrapbot.ai in a container:
+
+```bash
+docker-compose up
+```
+
+This approach ensures consistent behavior across different environments.
+
 ---
 
 ## Project Status
 
-⚠️ Early-stage / experimental
+**Early-stage / experimental**
 
-- Core pipeline defined
-- APIs and interfaces may evolve
+Core pipeline defined. APIs and interfaces may evolve.
 
-⚠️ todo
-- Browser control
+**Todo:**
+- Browser control automation
+- Custom wake word training
+- Extended intent library
 
 ---
 
 ## Philosophy
 
-- **Local-first** — you own the system
-- **Explicit over magical** — transparent processing
-- **Minimal dependencies** — fewer moving parts
-- **Composable** — easy to extend with new intents
+- **Local-first** - you own the system
+- **Explicit over magical** - transparent processing
+- **Minimal dependencies** - fewer moving parts
+- **Composable** - easy to extend with new intents
+
+---
+
+## Architecture
+
+The system follows a clean separation of concerns:
+
+- `listener.py` handles all audio input, wake word detection, and silence detection
+- `reasoner.py` processes transcribed text, classifies intents, generates responses
+- `main.py` orchestrates the pipeline and manages the event loop
+
+This modular design makes it easy to swap components or extend functionality.
 
 ---
 
 ## License
 
-You are welcome to fork this project. Vibe coded with free chatgpt version GPT-5.2.
 MIT License
+
+Vibe coded with free chatgpt version GPT-5.2.
 
 ---
 
@@ -146,5 +214,5 @@ MIT License
 - Linux users
 - Developers interested in real-time audio systems
 
-If you want a consumer assistant, buy one.
-If you want to understand and control the pipeline, deploy Ok House
+**If you want a consumer assistant, buy one.**  
+**If you want to understand and control the pipeline, deploy Scrapbot.ai.**

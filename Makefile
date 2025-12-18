@@ -1,53 +1,54 @@
-VENV := .venv
-PYTHON := $(VENV)/bin/python
-PIP := $(VENV)/bin/pip
-REQ := requirements.txt
+# Container variables
+IMAGE_NAME := brave-voice-control
+CONTAINER_NAME := scrapbot-ai
 
 # -------------------------
 # Default target
 # -------------------------
 .PHONY: help
 help:
+	@echo "Brave Music Totem - Docker Management"
 	@echo "Targets:"
-	@echo "  make venv      Create virtual environment"
-	@echo "  make install   Install Python dependencies"
-	@echo "  make run       Run the voice assistant"
-	@echo "  make clean     Remove virtual environment"
+	@echo "  make build     Build the Docker image"
+	@echo "  make up        Start the container in the background"
+	@echo "  make run       Start the container in the foreground (see logs)"
+	@echo "  make down      Stop and remove the container"
+	@echo "  make logs      Follow container logs"
+	@echo "  make shell     Open a terminal inside the running container"
+	@echo "  make clean     Remove the image and cached volumes"
 
 # -------------------------
-# System dependencies (one-time)
+# Docker Lifecycle
 # -------------------------
-.PHONY: system-deps
-system-deps:
-	sudo apt update
-	sudo apt install -y portaudio19-dev python3-dev
 
-# -------------------------
-# Setup virtual environment
-# -------------------------
-$(VENV)/bin/activate:
-	python3 -m venv $(VENV)
-	$(PIP) install --upgrade pip
+.PHONY: build
+build:
+	docker compose build
 
-venv: $(VENV)/bin/activate
+.PHONY: up
+up:
+	docker compose up -d
 
-# -------------------------
-# Install dependencies
-# -------------------------
-.PHONY: install
-install: venv
-	$(PIP) install -r $(REQ)
-
-# -------------------------
-# Run listener
-# -------------------------
 .PHONY: run
 run:
-	$(PYTHON) main.py
+	docker compose up
+
+.PHONY: down
+down:
+	docker compose down
+
+.PHONY: logs
+logs:
+	docker logs -f $(CONTAINER_NAME)
+
+.PHONY: shell
+shell:
+	docker exec -it $(CONTAINER_NAME) /bin/bash
 
 # -------------------------
-# Clean environment
+# Maintenance
 # -------------------------
+
 .PHONY: clean
 clean:
-	rm -rf $(VENV)
+	docker compose down --rmi all --volumes --remove-orphans
