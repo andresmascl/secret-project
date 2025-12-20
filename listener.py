@@ -3,6 +3,7 @@ import numpy as np
 import wave
 import time
 import torch
+import subprocess  # <--- Added for audio playback
 from openwakeword.model import Model
 
 from config import (
@@ -17,6 +18,7 @@ from config import (
 FRAME_SIZE = 1024 
 COMMAND_TIMEOUT = 3.0  
 VAD_WINDOW = 512
+WAKE_SOUND_PATH = "/app/wakeword-confirmed.mp3"
 
 # --------------------
 # Models
@@ -37,6 +39,19 @@ def save_wav(frames, filename):
         wf.setsampwidth(2)
         wf.setframerate(AUDIO_RATE) 
         wf.writeframes(b"".join(frames))
+
+def play_wake_sound():
+    """Plays the wake word confirmation sound in the background."""
+    try:
+        # Using ffplay (part of ffmpeg) which is standard for mp3 playback
+        # -nodisp: no video window, -autoexit: close after playing
+        subprocess.Popen(
+            ["ffplay", "-nodisp", "-autoexit", WAKE_SOUND_PATH],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    except Exception as e:
+        print(f"🔊 Playback error: {e}")
 
 # --------------------
 # Public API
@@ -74,17 +89,12 @@ async def listen(stream, native_rate, on_audio_recorded=None):
             if len(vad_processing_buffer) > VAD_WINDOW * 10:
                 vad_processing_buffer = vad_processing_buffer[-VAD_WINDOW:]
             
-            # --- HEARTBEAT (FIXED) ---
+            # --- HEARTBEAT ---
             if time.time() - last_heartbeat > 0.12: 
-                # Calculate RMS
                 rms = np.sqrt(np.mean(audio_int16.astype(np.float32)**2))
-                
-                # FIX: We removed "if rms > 80" so it can update back down to 0
-                bar_length = min(20, int(rms / 120)) # Adjusted scaling for cleaner look
+                bar_length = min(20, int(rms / 120))
                 icon = "🔊" if (recording and is_speech_global) else "🎙️"
                 progress_bar = icon + "█" * bar_length + "░" * (20 - bar_length)
-                
-                # Overwrite previous line
                 print(f"\033[F\033[K{progress_bar} [Vol: {rms:5.0f}]", flush=True)
                 last_heartbeat = time.time()
             
@@ -124,6 +134,11 @@ async def listen(stream, native_rate, on_audio_recorded=None):
 
                     if wake_armed and score >= WAKE_THRESHOLD and (now - last_record_end) > WAKE_COOLDOWN_SEC:
                         print(f"\n✨ WAKE WORD DETECTED ({score:.2f}) ✨", flush=True)
+                        
+                        # --- TRIGGER SOUND HERE ---
+                        play_wake_sound()
+                        # --------------------------
+
                         print("", flush=True)
                         recording = True
                         speech_started = False
@@ -135,7 +150,6 @@ async def listen(stream, native_rate, on_audio_recorded=None):
                 if recording:
                     audio_buffer.append(current_chunk.tobytes())
 
-                    # Abort if no speech starts within timeout
                     if not speech_started and (now - recording_start_time) > COMMAND_TIMEOUT:
                         print("\n😴 No command detected. Going back to sleep...", flush=True)
                         print("", flush=True)
