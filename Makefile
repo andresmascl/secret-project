@@ -1,6 +1,11 @@
+# Get the IDs once at the start
+export UID := $(shell id -u)
+export GID := $(shell id -g)
+
 # Container variables
 IMAGE_NAME := brave-voice-control
 CONTAINER_NAME := scrapbot-ai
+
 
 # -------------------------
 # Default target
@@ -29,9 +34,10 @@ build:
 up:
 	docker compose up -d
 
+
 .PHONY: run
 run:
-	docker compose up
+	XDG_RUNTIME_DIR=$(XDG_RUNTIME_DIR) UID=$(UID) GID=$(GID) docker compose up
 
 .PHONY: down
 down:

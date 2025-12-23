@@ -1,76 +1,76 @@
 import asyncio
-import signal
 import pyaudio
-from dotenv import load_dotenv
+import reasoner 
+from listener import listen 
+from config import FRAME_SIZE 
+import os
+import sys
 
-from listener import listen, FRAME_SIZE
-from config import CHANNELS
-
-import reasoner
-
-# --------------------
-# Bootstrap
-# --------------------
-load_dotenv()
-
-# --------------------
-# Audio callback
-# --------------------
-# main.py
-
-async def handle_audio(wav_path: str) -> None:
-    """Send recorded audio to the reasoner pipeline."""
-    print(f"🧠 Sending audio to reasoner: {wav_path}")
-    try:
-        # CHANGE THIS: from process_audio to transcribe_audio
-        result, confidence = await reasoner.transcribe_audio(wav_path) 
-        print(f"💡 Reasoner result: [{confidence:.1f}%] {result}")
-    except Exception as exc:
-        print(f"⚠️ Error processing audio: {exc}")
-
-# --------------------
-# Main
-# --------------------
-def main() -> None:
+async def main_loop():
     p = pyaudio.PyAudio()
-    stream = None
 
+    # 1. Identify Device
     try:
-        # Detect Hardware Native Rate to avoid [Errno -9997]
-        try:
-            device_info = p.get_default_input_device_info()
-            native_rate = int(device_info['defaultSampleRate'])
-            print(f"🎙️ Using Hardware Device: {device_info['name']} at {native_rate}Hz")
-        except Exception as e:
-            native_rate = 44100  # Standard fallback
-            print(f"⚠️ Could not detect native rate, falling back to {native_rate}Hz. Error: {e}")
-
-        # Open stream using constants from config.py
-        stream = p.open(
-            format=pyaudio.paInt16,
-            channels=CHANNELS,
-            rate=native_rate,  
-            input=True,
-            frames_per_buffer=FRAME_SIZE,
-        )
-
-        # Pass the native_rate to listener for internal downsampling
-        asyncio.run(listen(stream, native_rate=native_rate, on_audio_recorded=handle_audio))
-
-    except KeyboardInterrupt:
-        print("\n🛑 Interrupted by user")
+        device_info = p.get_default_input_device_info()
+        native_rate = int(device_info['defaultSampleRate'])
+        target_channels = 1 
+        print(f"🎙️ Using Device: {device_info['name']}")
     except Exception as e:
-        # Log actual error details for easier debugging
-        import traceback
-        traceback.print_exc()
-        print(f"❌ Failed to initialize audio: {e}")
+        native_rate, target_channels = 44100, 1
+        print(f"⚠️ Falling back to default specs. Error: {e}")
 
-    finally:
-        if stream is not None:
-            if stream.is_active():
-                stream.stop_stream()
-            stream.close()
-        p.terminate()
+    # 2. Open stream
+    device_index = None
+    env_idx = os.getenv("AUDIO_DEVICE_INDEX")
+    if env_idx:
+        try:
+            device_index = int(env_idx)
+        except ValueError:
+            device_index = None
+
+    stream = p.open(
+        format=pyaudio.paInt16,
+        channels=target_channels,
+        rate=native_rate,
+        input=True,
+        input_device_index=device_index,
+        frames_per_buffer=FRAME_SIZE,
+    )
+    print("🤖 Scrapbot is active. Speak now...")
+
+    # Create the generator once
+    audio_gen = listen(stream, native_rate=native_rate)
+
+    # Consume the generator in a loop
+    while True:
+        try:
+            # Get the next item with a small await to ensure async cooperation
+            item = await audio_gen.__anext__()
+            
+            # Check if it's the start session signal
+            if item == "START_SESSION":
+                # Clear the volume bar line to print the status message cleanly
+                sys.stdout.write("\r\x1b[2K") 
+                sys.stdout.flush()
+                print("🛰️ Wake word detected! Starting Live Session...")
+                
+                # Hand over the generator to the reasoner
+                await reasoner.run_live_session(audio_gen)
+                
+                # Clear the line again before returning to the wake-word loop
+                sys.stdout.write("\r\x1b[2K")
+                sys.stdout.flush()
+                print("🔄 Session closed. Returning to wake-word detection.")
+            # For audio bytes, just continue - the volume bar updates in listen()
+            
+        except StopAsyncIteration:
+            break
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main_loop())
+    except KeyboardInterrupt:
+        # Clear the line one last time on exit
+        sys.stdout.write("\r\x1b[2K")
+        sys.stdout.flush()
+        print("🛑 Scrapbot stopped by user.")

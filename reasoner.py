@@ -1,62 +1,70 @@
-# reasoner.py
-import os
 import asyncio
-from google.cloud.speech_v2.types import cloud_speech
-# Import the ALREADY initialized client from config
-from config import speech_client, PROJECT_ID, REGION
+import os
+from google import genai
+from google.genai import types
+from config import PROJECT_ID, REGION, MODEL_NAME
 
-async def transcribe_audio(wav_path: str):
-    if not os.path.exists(wav_path):
-        print(f"⚠️ File not found: {wav_path}")
-        return "", 0.0
+# Initialize the new GenAI client
+client = genai.Client(vertexai=True, project=PROJECT_ID, location=REGION)
 
-    try:
-        with open(wav_path, "rb") as f:
-            audio_content = f.read()
+# Define your "Intents" as Tools
+tools = [
+    {
+        "function_declarations": [
+            {
+                "name": "move_robot",
+                "description": "Moves the robot in a specific direction for a distance",
+                "parameters": {
+                    "type": "OBJECT",
+                    "properties": {
+                        "direction": {"type": "STRING", "enum": ["forward", "back", "left", "right"]},
+                        "distance": {"type": "NUMBER", "description": "Distance in meters"}
+                    },
+                    "required": ["direction", "distance"]
+                }
+            },
+            # Add more intents here as FunctionDeclarations
+        ]
+    }
+]
 
-        # The V2 Recognizer path
-        recognizer_path = f"projects/{PROJECT_ID}/locations/{REGION}/recognizers/_"
+async def run_live_session(audio_generator):
+    """
+    Manages the real-time interaction loop.
+    """
+    config = types.LiveConnectConfig(
+        model=MODEL_NAME,
+        system_instruction="You are Scrapbot. Use the provided tools to help the user. If info is missing, ask.",
+        tools=tools,
+        generation_config={"speech_config": {"voice_config": {"prebuilt_voice_config": {"voice_name": "Aoede"}}}}
+    )
 
-        # MATCHING THE CURL SUCCESS: 
-        # 1. Single language code 
-        # 2. auto_decoding_config (required for V2 regional)
-        config = cloud_speech.RecognitionConfig(
-			model="chirp_3",  # Updated from chirp_2
-			language_codes=["es-US"], 
-			auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
-			features=cloud_speech.RecognitionFeatures(
-				enable_automatic_punctuation=True,
-			),
-		)
+    async with client.aio.models.live.connect(model=MODEL_NAME, config=config) as session:
+        # Task 1: Send Audio
+        async def send_audio():
+            async for chunk in audio_generator:
+                if chunk == "START_SESSION": continue # Metadata chunk
+                await session.send(input=chunk, end_of_turn=False)
 
-        request = cloud_speech.RecognizeRequest(
-            recognizer=recognizer_path,
-            config=config,
-            content=audio_content,
-        )
+        # Task 2: Receive and Process Events
+        async def receive_events():
+            async for message in session.receive():
+                # Handle Tool Calls (Intents)
+                if message.tool_call:
+                    for call in message.tool_call.function_calls:
+                        print(f"🎯 INTENT DETECTED: {call.name} with {call.args}")
+                        # Return tool response to "forget" the turn or fulfill it
+                        await session.send(
+                            types.LiveClientToolResponse(
+                                function_responses=[{"name": call.name, "response": {"status": "success"}}]
+                            )
+                        )
+                        return # Closing session after tool execution to 'forget' context
 
-        print(f"📡 Sending audio to Chirp 3 ({REGION})...")
-        
-        # Use a shorter timeout to catch hangs faster
-        # asyncio.to_thread is correct for blocking gRPC calls
-        response = await asyncio.wait_for(
-            asyncio.to_thread(speech_client.recognize, request=request),
-            timeout=10.0 
-        )
+                # Handle model's spoken response
+                if message.server_content and message.server_content.model_turn:
+                    # You could pipe this to local speakers here
+                    pass
 
-        if not response.results:
-            return "", 0.0
-
-        result = response.results[0]
-        transcript = result.alternatives[0].transcript
-        confidence = result.alternatives[0].confidence * 100
-        
-        print(f"✅ Success: {transcript}")
-        return transcript, confidence
-
-    except asyncio.TimeoutError:
-        print("🛑 STT Timeout: The gRPC connection is likely blocked by a firewall or proxy.")
-        return "TIMEOUT_ERROR", 0.0
-    except Exception as e:
-        print(f"❌ STT V2 Error: {e}")
-        return "", 0.0
+        # Run both concurrently
+        await asyncio.gather(send_audio(), receive_events())

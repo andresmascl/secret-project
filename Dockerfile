@@ -1,34 +1,41 @@
-# Dockerfile updates
 FROM python:3.12-slim
 
-# 1. Added ffmpeg for playback and libpulse0 for PulseAudio support
+# 1. Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     portaudio19-dev \
     python3-dev \
     gcc \
     libasound2-plugins \
+    libasound2 \
     ffmpeg \
     libpulse0 \
+    pulseaudio-utils \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
+# Ensure Torch doesn't try to download models every time you restart
 ENV TORCH_HOME=/home/scrapbot/.cache/torch
 
 COPY requirements.txt .
 
+# 2. Install Python dependencies
 RUN python -m pip install --no-cache-dir --upgrade pip setuptools && \
     python -m pip install --no-cache-dir -r requirements.txt
 
-RUN python3 -c "import torch; torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero_vad', force_reload=True, trust_repo=True)"
+# Pre-load the VAD model into the image to save startup time
+RUN python3 -c "import torch; torch.hub.load(repo_or_dir='snakers4/silero-vad', model='silero_vad', force_reload=False, trust_repo=True)"
 
-# 2. Copy code AND your sound file
+# 3. Finalize app structure
 COPY . .
 
+# Set up a non-root user for security (while keeping audio permissions)
 RUN useradd -m -u 1000 scrapbot && \
     mkdir -p /home/scrapbot/.cache/torch && \
     chown -R scrapbot:scrapbot /home/scrapbot /app
 
 USER scrapbot
 
+# 4. Entry point
 CMD ["python", "main.py"]

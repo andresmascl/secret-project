@@ -13,11 +13,8 @@ sentence-transformers
 openwakeword
 onnxruntime
 
-# --- Google Gen AI SDKs ---
-google-genai>=0.1.0
-google-cloud-speech>=2.34.0
-google-auth>=2.30.0
-google-auth-oauthlib
+# --- Google Gen AI SDK (New Multimodal Live) ---
+google-genai[aiohttp]>=1.0.0
 
 # --- Utilities ---
 python-dotenv>=1.0.0

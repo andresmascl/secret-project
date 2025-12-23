@@ -2,19 +2,18 @@
 import os 
 from pathlib import Path
 from dotenv import load_dotenv, find_dotenv
-from google.cloud import speech_v2 as speech
-from google.api_core.client_options import ClientOptions
-from google.oauth2 import service_account
 
 # 1. Setup Paths and Load Env
 load_dotenv(find_dotenv())
 
 # ---------------------------------------------------------
-# 2. AUDIO & LISTENER SETTINGS (Restored)
+# 2. AUDIO & LISTENER SETTINGS
 # ---------------------------------------------------------
+# Live API recommends 16kHz for input to minimize bandwidth/latency
 AUDIO_RATE = 16000
 CHANNELS = 1
-FRAME_SIZE = 1536
+# 1280 frames at 16kHz is ~80ms of audio, ideal for real-time streaming
+FRAME_SIZE = 1024
 
 # Wake word settings
 WAKE_KEY = "hey_mycroft"
@@ -23,35 +22,23 @@ WAKE_RESET_THRESHOLD = 0.2
 WAKE_COOLDOWN_SEC = 3.0
 
 # VAD (Voice Activity Detection) settings
-VAD_MODE = 2
 SILENCE_SECONDS = 1
 MIN_SPEECH_SECONDS = 0.3
 VAD_THRESHOLD = 0.5
 
 # ---------------------------------------------------------
-# 3. GOOGLE CLOUD / REASONER SETTINGS
+# 3. GOOGLE CLOUD / LIVE API SETTINGS
 # ---------------------------------------------------------
+# Credentials and Project ID for Vertex AI
 GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 REGION = os.getenv("GCP_REGION", "us-central1")
-MODEL_NAME = os.getenv("VERTEX_MODEL_NAME")
+MODEL_NAME = os.getenv("VERTEX_MODEL_NAME", "gemini-2.0-flash")
 
-# ---------------------------------------------------------
-# 4. INITIALIZE CLIENTS (Singleton Pattern)
-# ---------------------------------------------------------
-try:
-    # Chirp 2 MUST use the regional endpoint: e.g., us-central1-speech.googleapis.com
-    api_endpoint = f"{REGION}-speech.googleapis.com"
-    client_options = ClientOptions(api_endpoint=api_endpoint)
-    
-    # Explicitly load credentials to avoid gRPC discovery hangs
-    credentials = service_account.Credentials.from_service_account_file(GOOGLE_CREDENTIALS_JSON)
-
-    speech_client = speech.SpeechClient(
-        credentials=credentials,
-        client_options=client_options
-    )
-    print(f"✅ SpeechClient V2 initialized for {api_endpoint}")
-except Exception as e:
-    print(f"❌ Failed to load SpeechClient V2: {e}")
-    raise
+# New Live API Specifics
+LIVE_API_VOICE = "Aoede" # Options: Puck, Charon, Kore, Fenrir, Aoede
+SYSTEM_INSTRUCTION = (
+    "You are Scrapbot, a helpful robotic assistant. Respond in a friendly, "
+    "concise manner. If a user asks to move the robot, use your tools. "
+    "If information is missing, ask for it."
+)

@@ -1,187 +1,119 @@
 import asyncio
 import numpy as np
-import wave
+import audioop
 import time
 import torch
-import subprocess  # <--- Added for audio playback
+import subprocess
+import math
+import sys
 from openwakeword.model import Model
-
 from config import (
-    AUDIO_RATE, CHANNELS, WAKE_KEY, WAKE_THRESHOLD, 
-    WAKE_RESET_THRESHOLD, WAKE_COOLDOWN_SEC, 
-    SILENCE_SECONDS, MIN_SPEECH_SECONDS
+	AUDIO_RATE, CHANNELS, WAKE_KEY, WAKE_THRESHOLD,
+	WAKE_COOLDOWN_SEC, SILENCE_SECONDS, MIN_SPEECH_SECONDS, FRAME_SIZE
 )
 
-# --------------------
-# Derived constants
-# --------------------
-FRAME_SIZE = 1024 
-COMMAND_TIMEOUT = 3.0  
-VAD_WINDOW = 512
+# Constants
+READ_CHUNK_SIZE = FRAME_SIZE 
 WAKE_SOUND_PATH = "/app/wakeword-confirmed.mp3"
 
-# --------------------
-# Models
-# --------------------
 print("Loading Silero VAD and Wake Word models...", flush=True)
-wake_model = Model() 
+
+try:
+	wake_model = Model(wakeword_models=[WAKE_KEY])
+except TypeError:
+	print(f"⚠️ Argument mismatch. Loading default models and filtering for {WAKE_KEY}...")
+	wake_model = Model()
 
 vad_model, _ = torch.hub.load(
-    repo_or_dir='snakers4/silero-vad', 
-    model='silero_vad', 
-    force_reload=False,
-    trust_repo=True  
-)
-
-def save_wav(frames, filename):
-    with wave.open(filename, "wb") as wf:
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(2)
-        wf.setframerate(AUDIO_RATE) 
-        wf.writeframes(b"".join(frames))
+	repo_or_dir='snakers4/silero-vad', 
+	model='silero_vad', 
+	force_reload=False, 
+	trust_repo=True
+	)
 
 def play_wake_sound():
-    """Plays the wake word confirmation sound in the background."""
-    try:
-        # Using ffplay (part of ffmpeg) which is standard for mp3 playback
-        # -nodisp: no video window, -autoexit: close after playing
-        subprocess.Popen(
-            ["ffplay", "-nodisp", "-autoexit", WAKE_SOUND_PATH],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
-        )
-    except Exception as e:
-        print(f"🔊 Playback error: {e}")
+	try:
+		subprocess.Popen(
+			["ffplay", "-nodisp", "-autoexit", WAKE_SOUND_PATH], 
+			stdout=subprocess.DEVNULL, 
+			stderr=subprocess.STDOUT
+		)
+	except Exception as e:
+		print(f"🔊 Playback error: {e}")
 
-# --------------------
-# Public API
-# --------------------
-async def listen(stream, native_rate, on_audio_recorded=None):
-    print(f"🎙️ Resampling Engine: {native_rate}Hz -> {AUDIO_RATE}Hz", flush=True)
-    print(f"👂 Listening for wake word '{WAKE_KEY}'...", flush=True)
-    print("", flush=True)
-    
-    vad_processing_buffer = np.array([], dtype=np.int16)
+async def listen(stream, native_rate):
+	audio_queue = asyncio.Queue()
+	event_queue = asyncio.Queue()
 
-    recording = False
-    speech_started = False
-    wake_armed = True
-    audio_buffer = []
-    
-    last_record_end = 0
-    last_heartbeat = time.time()
-    recording_start_time = None
-    
-    is_speech_global = False
-    silence_start_time = None
-    speech_start_time = None
+	async def wake_word_worker():
+		audio_buffer = b""
+		wake_cooldown_until = 0
+		while True:
+			chunk = await audio_queue.get()
+			audio_buffer += chunk
+			
+			if len(audio_buffer) > 32000:
+				audio_buffer = b""
+				continue
 
-    while True:
-        await asyncio.sleep(0)
-        
-        try:
-            data = stream.read(FRAME_SIZE, exception_on_overflow=False)
-            if not data:
-                continue
-            audio_int16 = np.frombuffer(data, dtype=np.int16)
+			if len(audio_buffer) >= 2560:
+				to_process = audio_buffer[:2560]
+				audio_buffer = audio_buffer[2560:]
+				
+				audio_frame = np.frombuffer(to_process, dtype=np.int16)
+				
+				now = time.time()
+				if now > wake_cooldown_until:
+					predictions = await asyncio.to_thread(wake_model.predict, audio_frame)
+					score = predictions.get(WAKE_KEY, 0)
+					if score > WAKE_THRESHOLD:
+						print(f"✨ Wake word detected! ({score:.2f})", flush=True)
+						play_wake_sound()
+						wake_cooldown_until = now + WAKE_COOLDOWN_SEC
+						await event_queue.put("START_SESSION")
 
-            # --- ANTI-LAG: Purge old audio if we fall behind ---
-            if len(vad_processing_buffer) > VAD_WINDOW * 10:
-                vad_processing_buffer = vad_processing_buffer[-VAD_WINDOW:]
-            
-            # --- HEARTBEAT ---
-            if time.time() - last_heartbeat > 0.12: 
-                rms = np.sqrt(np.mean(audio_int16.astype(np.float32)**2))
-                bar_length = min(20, int(rms / 120))
-                icon = "🔊" if (recording and is_speech_global) else "🎙️"
-                progress_bar = icon + "█" * bar_length + "░" * (20 - bar_length)
-                print(f"\033[F\033[K{progress_bar} [Vol: {rms:5.0f}]", flush=True)
-                last_heartbeat = time.time()
-            
-            # --- RESAMPLING ---
-            if native_rate != AUDIO_RATE:
-                num_samples = len(audio_int16)
-                target_num_samples = int(num_samples * AUDIO_RATE / native_rate)
-                audio_int16_16k = np.interp(
-                    np.linspace(0, 1, target_num_samples),
-                    np.linspace(0, 1, num_samples),
-                    audio_int16
-                ).astype(np.int16)
-            else:
-                audio_int16_16k = audio_int16
-            
-            vad_processing_buffer = np.append(vad_processing_buffer, audio_int16_16k)
+	worker_task = asyncio.create_task(wake_word_worker())
 
-            while len(vad_processing_buffer) >= VAD_WINDOW:
-                current_chunk = vad_processing_buffer[:VAD_WINDOW]
-                vad_processing_buffer = vad_processing_buffer[VAD_WINDOW:]
-                
-                audio_float32 = current_chunk.astype(np.float32) / 32768.0
-                now = time.time()
+	print(f"🎙️ Listener started. Resampling {native_rate}Hz -> 16000Hz", flush=True)
+	resample_state = None
 
-                # --- VAD ---
-                speech_prob = vad_model(torch.from_numpy(audio_float32), AUDIO_RATE).item()
-                is_speech = speech_prob > 0.45 
-                is_speech_global = is_speech 
+	try:
+		while True:
+			# Read audio data - the print here forces async cooperation
+			data = await asyncio.to_thread(stream.read, READ_CHUNK_SIZE, exception_on_overflow=False)
+			
+			# Resample to 16kHz
+			resampled_chunk, resample_state = audioop.ratecv(
+				data, 2, 1, native_rate, 16000, resample_state
+			)
 
-                # --- WAKE WORD DETECTION ---
-                if not recording:
-                    preds = wake_model.predict(current_chunk)
-                    score = max(v for k, v in preds.items() if WAKE_KEY in k) if any(WAKE_KEY in k for k in preds) else 0.0
+			# --- VOLUME BAR VISUALIZATION ---
+			# Clear line and print on same line
+			rms = audioop.rms(resampled_chunk, 2)
+			db = 20 * math.log10(max(1, rms))
+			max_db, bar_len = 80, 50
+			filled_len = int(min(db, max_db) / max_db * bar_len)
+			
+			bar = "█" * filled_len + " " * (bar_len - filled_len)
+			print(f"\033[F\033[K🔊 Volume: {rms:5d} |{bar}\x1b[K", flush=True)
 
-                    if score < WAKE_RESET_THRESHOLD:
-                        wake_armed = True
+			# First, check for events
+			try:
+				event = event_queue.get_nowait()
+				if event == "START_SESSION":
+					yield "START_SESSION"
+			except asyncio.QueueEmpty:
+				pass
+			
+			# Then yield the audio chunk
+			yield resampled_chunk
+			
+			# Add to wake word detection queue
+			if audio_queue.qsize() < 50:
+				audio_queue.put_nowait(resampled_chunk)
 
-                    if wake_armed and score >= WAKE_THRESHOLD and (now - last_record_end) > WAKE_COOLDOWN_SEC:
-                        print(f"\n✨ WAKE WORD DETECTED ({score:.2f}) ✨", flush=True)
-                        
-                        # --- TRIGGER SOUND HERE ---
-                        play_wake_sound()
-                        # --------------------------
-
-                        print("", flush=True)
-                        recording = True
-                        speech_started = False
-                        wake_armed = False
-                        audio_buffer = []
-                        recording_start_time = now
-                
-                # --- RECORDING HANDLING ---
-                if recording:
-                    audio_buffer.append(current_chunk.tobytes())
-
-                    if not speech_started and (now - recording_start_time) > COMMAND_TIMEOUT:
-                        print("\n😴 No command detected. Going back to sleep...", flush=True)
-                        print("", flush=True)
-                        recording = False
-                        is_speech_global = False
-                        last_record_end = now
-                        break 
-
-                    if is_speech:
-                        if speech_start_time is None: speech_start_time = now
-                        silence_start_time = None 
-                        if not speech_started and (now - speech_start_time) >= MIN_SPEECH_SECONDS:
-                            speech_started = True
-                            print("🛰️ Recording command...", flush=True)
-                    else:
-                        if silence_start_time is None: silence_start_time = now
-                        if speech_started and (now - silence_start_time) >= SILENCE_SECONDS:
-                            print("\n🛑 Utterance finished. Processing...", flush=True)
-                            print("", flush=True)
-                            filename = f"/tmp/recording_{int(time.time())}.wav"
-                            save_wav(audio_buffer, filename)
-                            
-                            if on_audio_recorded:
-                                await on_audio_recorded(filename)
-                            
-                            recording, speech_started = False, False
-                            is_speech_global = False
-                            speech_start_time, silence_start_time = None, None
-                            last_record_end = now
-                            break
-
-        except Exception as e:
-            print(f"\n⚠️ Loop Error: {e}", flush=True)
-            print("", flush=True)
-            recording, is_speech_global = False, False
+	except Exception as e:
+		sys.stdout.write("\x1b[2K\r")  # Clear the line before printing error
+		print(f"⚠️ Listener Error: {e}")
+	finally:
+		worker_task.cancel()
