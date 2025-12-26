@@ -2,11 +2,23 @@ import asyncio
 import pyaudio
 import reasoner 
 from listener import listen 
-from config import FRAME_SIZE 
+from config import FRAME_SIZE, PROJECT_ID 
 import os
 import sys
 
 async def main_loop():
+    # Early validation of critical environment variables
+    missing = []
+    if not PROJECT_ID:
+        missing.append("GCP_PROJECT_ID")
+    if not os.getenv("GOOGLE_APPLICATIONS_CREDENTIALS") and not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+        missing.append("GOOGLE_APPLICATION_CREDENTIALS")
+    if missing:
+        raise RuntimeError(
+            f"Missing required environment: {', '.join(missing)}.\n"
+            "Set them in .env and ensure docker-compose.yaml includes env_file: .env"
+        )
+
     p = pyaudio.PyAudio()
 
     # 1. Identify Device

@@ -2,10 +2,10 @@ import asyncio
 import os
 from google import genai
 from google.genai import types
-from config import PROJECT_ID, REGION, MODEL_NAME
+from config import PROJECT_ID, REGION, MODEL_NAME, LIVE_API_VOICE
 
-# Initialize the new GenAI client
-client = genai.Client(vertexai=True, project=PROJECT_ID, location=REGION)
+# Initialize the new GenAI client lazily to validate env first
+client = None
 
 # Define your "Intents" as Tools
 tools = [
@@ -32,11 +32,33 @@ async def run_live_session(audio_generator):
     """
     Manages the real-time interaction loop.
     """
+    # Validate required environment before creating client
+    missing = []
+    if not PROJECT_ID:
+        missing.append("GCP_PROJECT_ID")
+    if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
+        missing.append("GOOGLE_APPLICATION_CREDENTIALS")
+    if missing:
+        raise RuntimeError(
+            f"Missing required environment: {', '.join(missing)}.\n"
+            "Set them in .env and docker-compose env_file."
+        )
+
+    global client
+    if client is None:
+        client = genai.Client(vertexai=True, project=PROJECT_ID, location=REGION)
+
     config = types.LiveConnectConfig(
         model=MODEL_NAME,
         system_instruction="You are Scrapbot. Use the provided tools to help the user. If info is missing, ask.",
         tools=tools,
-        generation_config={"speech_config": {"voice_config": {"prebuilt_voice_config": {"voice_name": "Aoede"}}}}
+        generation_config={
+            "speech_config": {
+                "voice_config": {
+                    "prebuilt_voice_config": {"voice_name": LIVE_API_VOICE}
+                }
+            }
+        }
     )
 
     async with client.aio.models.live.connect(model=MODEL_NAME, config=config) as session:

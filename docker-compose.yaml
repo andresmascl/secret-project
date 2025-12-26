@@ -2,53 +2,36 @@ services:
   scrapbot:
     build: .
     container_name: scrapbot-ai
-    network_mode: host 
+    network_mode: host
     ipc: host
-    # TTY and Stdin are required to force unbuffered output for the volume bar animation
     stdin_open: true
     tty: true
-    
-    # Matches the local user ID to the container for PulseAudio/PipeWire access
-    user: "${UID}:${GID}"
 
     env_file:
       - .env
 
+    # Run container with host UID/GID for audio/DBus; provide sane defaults
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+
     volumes:
-      # Mount the PulseAudio/PipeWire socket
       - /var/lib/dbus:/var/lib/dbus
       - .:/app
-      # Mount the authentication cookie as a file
-      - ~/.config/pulse/cookie:/home/scrapbot/.pulse-cookie
-      - /run/user/1000/pulse/native:/run/user/1000/pulse/native
-      # Mount the DBus session socket for device property updates
-      - /run/user/1000/bus:/run/user/1000/bus
-      - /etc/machine-id:/etc/machine-id:ro      
+      # Map Pulse cookie to default lookup path inside container ($HOME/.config/pulse/cookie). For arbitrary UID, HOME is typically '/'.
+      - ${HOME}/.config/pulse/cookie:/.config/pulse/cookie
+      - /run/user/${USER_ID:-1000}/pulse/native:/run/user/${USER_ID:-1000}/pulse/native
+      - /run/user/${USER_ID:-1000}/bus:/run/user/${USER_ID:-1000}/bus
+      - /etc/machine-id:/etc/machine-id:ro
+
     environment:
-      # Tell the container where the audio server socket is
-      - PULSE_SERVER=unix:/run/user/1000/pulse/native
-      - XDG_RUNTIME_DIR=/run/user/1000
-      - DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
-      
-      # PORTABLE: 'default' follows the host's active microphone setting
-      - PULSE_SOURCE=default
-      
-      # Tell PulseAudio where to look for the auth cookie
-      - PULSE_COOKIE=/home/scrapbot/.pulse-cookie
-      
-      - PYTHONUNBUFFERED=1
-      - GOOGLE_GENAI_USE_VERTEXAI=true
-      - GOOGLE_CLOUD_PROJECT=${GCP_PROJECT_ID}
-      - GOOGLE_CLOUD_LOCATION=${GCP_REGION}
-    
+      - PULSE_SERVER=unix:/run/user/${USER_ID:-1000}/pulse/native
+      - XDG_RUNTIME_DIR=/run/user/${USER_ID:-1000}
+      - DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${USER_ID:-1000}/bus
+
     cap_add:
       - SYS_NICE
-    
-    # Allow real-time scheduling to prevent audio thread starvation
     ulimits:
       rtprio: 99
       memlock: -1
-
     group_add:
       - audio
     restart: unless-stopped

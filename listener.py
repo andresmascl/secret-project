@@ -8,8 +8,7 @@ import math
 import sys
 from openwakeword.model import Model
 from config import (
-	AUDIO_RATE, CHANNELS, WAKE_KEY, WAKE_THRESHOLD,
-	WAKE_COOLDOWN_SEC, SILENCE_SECONDS, MIN_SPEECH_SECONDS, FRAME_SIZE
+	WAKE_KEY, WAKE_THRESHOLD, WAKE_COOLDOWN_SEC, FRAME_SIZE
 )
 
 # Constants
