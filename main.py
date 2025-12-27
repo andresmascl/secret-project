@@ -5,6 +5,24 @@ from listener import listen
 from config import FRAME_SIZE, PROJECT_ID 
 import os
 import sys
+from ctypes import *
+from contextlib import contextmanager
+
+# ALSA Error Handler to suppress verbose logs
+ERROR_HANDLER_FUNC = CFUNCTYPE(None, c_char_p, c_int, c_char_p, c_int, c_char_p)
+def py_error_handler(filename, line, function, err, fmt):
+    pass
+c_error_handler = ERROR_HANDLER_FUNC(py_error_handler)
+
+@contextmanager
+def no_alsa_err():
+    try:
+        asound = cdll.LoadLibrary('libasound.so.2')
+        asound.snd_lib_error_set_handler(c_error_handler)
+        yield
+        asound.snd_lib_error_set_handler(None)
+    except:
+        yield
 
 async def main_loop():
     # Early validation of critical environment variables
@@ -19,7 +37,11 @@ async def main_loop():
             "Set them in .env and ensure docker-compose.yaml includes env_file: .env"
         )
 
-    p = pyaudio.PyAudio()
+    # Suppress JACK server autostart to clean up logs
+    os.environ["JACK_NO_START_SERVER"] = "1"
+
+    with no_alsa_err():
+        p = pyaudio.PyAudio()
 
     # 1. Identify Device
     try:
