@@ -20,7 +20,7 @@ WAKE_COOLDOWN_SEC = 3.0
 # These now pull from the organized .env via Docker
 PROJECT_ID = os.getenv("GCP_PROJECT_ID")
 REGION = os.getenv("GCP_REGION", "us-central1")
-MODEL_NAME = os.getenv("VERTEX_MODEL_NAME", "gemini-live-2.5-flash-preview-native-audio-09-2025")
+MODEL_NAME = os.getenv("VERTEX_MODEL_NAME", "gemini-2.0-flash-live")
 LIVE_API_VOICE = os.getenv("LIVE_API_VOICE", "Aoede")
 
 SYSTEM_INSTRUCTION = (

@@ -12,7 +12,7 @@ import listener  # Access vad_model from listener
 
 # Configuration
 LOCATION = "us-central1"
-MODEL_ID = "gemini-live-2.5-flash-preview-native-audio-09-2025"
+MODEL_ID = "gemini-2.0-flash-live"
 SILENCE_THRESHOLD_MS = 1500  # Stop streaming after 1.5s of silence
 
 def get_system_instruction():
@@ -45,8 +45,8 @@ async def run_live_session(audio_gen):
     print(f"⚡ Connecting to {MODEL_ID}...", flush=True)
 
     config = types.LiveConnectConfig(
-        response_modalities=["AUDIO"],
-        output_audio_transcription=types.AudioTranscriptionConfig(),
+        response_modalities=["TEXT"],
+        system_instruction=types.Content(parts=[types.Part(text=system_instruction)]),
     )
 
     async with client.aio.live.connect(model=MODEL_ID, config=config) as session:
@@ -56,6 +56,7 @@ async def run_live_session(audio_gen):
         
         async def send_audio_loop():
             nonlocal silence_start_time, is_speaking
+            vad_buffer = b""
             
             try:
                 async for chunk in audio_gen:
@@ -63,29 +64,37 @@ async def run_live_session(audio_gen):
                     await session.send(input={"data": chunk, "mime_type": "audio/pcm"}, end_of_turn=False)
                     
                     # 2. Local VAD Logic to detect "Stop"
-                    # Convert int16 bytes to float32 tensor for Silero VAD
-                    audio_int16 = np.frombuffer(chunk, dtype=np.int16)
-                    audio_float32 = audio_int16.astype(np.float32) / 32768.0
-                    tensor = torch.from_numpy(audio_float32)
+                    vad_buffer += chunk
                     
-                    # Get speech probability
-                    speech_prob = listener.vad_model(tensor, 16000).item()
-                    
-                    if speech_prob > 0.5:
-                        is_speaking = True
-                        silence_start_time = None
-                        sys.stdout.write(".") # Visual feedback for speech
-                        sys.stdout.flush()
-                    else:
-                        if is_speaking: # Only count silence if we have started speaking
-                            if silence_start_time is None:
-                                silence_start_time = asyncio.get_running_loop().time()
-                            
-                            elapsed_silence = (asyncio.get_running_loop().time() - silence_start_time) * 1000
-                            if elapsed_silence > SILENCE_THRESHOLD_MS:
-                                print("\n🛑 Silence detected. Processing response...", flush=True)
-                                await session.send(input=None, end_of_turn=True)
-                                break
+                    # Silero VAD requires chunks of 512, 1024, or 1536 samples (at 16kHz).
+                    # 512 samples * 2 bytes/sample = 1024 bytes.
+                    while len(vad_buffer) >= 1024:
+                        process_chunk = vad_buffer[:1024]
+                        vad_buffer = vad_buffer[1024:]
+
+                        # Convert int16 bytes to float32 tensor for Silero VAD
+                        audio_int16 = np.frombuffer(process_chunk, dtype=np.int16)
+                        audio_float32 = audio_int16.astype(np.float32) / 32768.0
+                        tensor = torch.from_numpy(audio_float32)
+                        
+                        # Get speech probability
+                        speech_prob = listener.vad_model(tensor, 16000).item()
+                        
+                        if speech_prob > 0.5:
+                            is_speaking = True
+                            silence_start_time = None
+                            sys.stdout.write(".") # Visual feedback for speech
+                            sys.stdout.flush()
+                        else:
+                            if is_speaking: # Only count silence if we have started speaking
+                                if silence_start_time is None:
+                                    silence_start_time = asyncio.get_running_loop().time()
+                                
+                                elapsed_silence = (asyncio.get_running_loop().time() - silence_start_time) * 1000
+                                if elapsed_silence > SILENCE_THRESHOLD_MS:
+                                    print("\n🛑 Silence detected. Processing response...", flush=True)
+                                    await session.send(input=None, end_of_turn=True)
+                                    return
             except Exception as e:
                 print(f"Error in send_audio_loop: {e}")
 
